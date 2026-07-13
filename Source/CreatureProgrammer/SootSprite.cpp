@@ -787,6 +787,7 @@ void ASootSprite::Debug_AddVelocity(const FVector& DeltaVelocity)
 
 void ASootSprite::Debug_DrawBounds() const
 {
+#if UE_BUILD_DEBUG | UE_BUILD_DEVELOPMENT
 	const FBox BoxBounds = EyesMesh->Bounds.GetBox();
 	const float VtRadius = GetVisualRadius();
 	const float HzRadius = GetVisualRadius();
@@ -802,11 +803,14 @@ void ASootSprite::Debug_DrawBounds() const
 	
 	DrawDebugBox(GetWorld(), VtBox.GetCenter(), VtBox.GetExtent(), FColor::Blue);
 	DrawDebugBox(GetWorld(), HzBox.GetCenter(), HzBox.GetExtent(), FColor::Red);
+#endif
 }
 
 void ASootSprite::Debug_DrawVisionBox() const
 {
+#if UE_BUILD_DEBUG | UE_BUILD_DEVELOPMENT
 	const FVector BoxCenter = VisionBox->GetComponentLocation();
 	const FVector Extent = VisionBox->GetScaledBoxExtent();
 	DrawDebugBox(GetWorld(), BoxCenter, Extent, FColor::Orange, false, -1, 0, 3);
+#endif
 }
