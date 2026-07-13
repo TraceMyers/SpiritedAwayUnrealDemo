@@ -1,0 +1,10 @@
+.idea/
+.vs/
+Binaries/
+DerivedDataCache/
+Intermediate/
+Saved/
+Plugins/
+CreatureProgrammer.sln
+CreatureProgrammer.sln.DotSettings.user
+.vsconfig
