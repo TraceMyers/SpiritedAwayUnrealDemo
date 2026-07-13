@@ -26,6 +26,12 @@ enum class ESootSpriteLimbGrowState : uint8
 	Retract
 };
 
+// generic limb return value with warning/error message built in.
+// only used for one procedure at the moment, but I like this pattern.
+// allows for detailed information passing without having to write in
+// extra optional parameters. it's just a little bit less
+// of a pain to manage than making a special return type struct for
+// every procedure that wants one.
 struct FSootSpriteLimbResult
 {
 	enum EMessage : uint32
@@ -48,7 +54,8 @@ struct FSootSpriteLimbResult
 	};
 };
 
-
+// bendy limbs belonging to the soot sprite creature (SootSprite.h)
+// procedurally generated mesh, procedurally animated.
 UCLASS()
 class CREATUREPROGRAMMER_API USootSpriteLimb : public UActorComponent
 {
@@ -77,19 +84,19 @@ public:
 	
 	ASootSprite* GetSootSprite() const;
 	
+	// set the direction of the limb's attachment. line trace to find
+	// if it attaches to a collision. if not, will just result in the
+	// limb being extended out straight.
 	void SetTargetDirection(const FVector& Direction, double NormalOffset=0);
 	
+	// smart procedure for initializing one step of a walk cycle.
 	// returns 0-to-1 alpha representing the normalized 'how far we were able to step' when moving toward the anchor.
 	// 0 = no progress, 1 = made it, 0 < x < 1 = ran into something impassable
 	FSootSpriteLimbResult InitializeLegTargetInterpolation(const FVector2D& AnchorOffset, double MaxStepHeight, double EarlyOutStepHeight, bool bDebugDraw=false);
 	
 	void InterpolateTarget(float Alpha);
 	
-	double GetLength() const;
-	
 protected:
-	
-	void Grow(float DelaTime);
 	
 	void ResetJointPoses();
 	
@@ -110,7 +117,6 @@ public:
 	static constexpr int32 JOINT_PARAMETER_COUNT = JOINT_COUNT * PARAMETERS_PER_JOINT;
 	static constexpr float MESH_HALF_WIDTH = 4.0f;
 	static constexpr float MESH_LENGTH = 100.f;
-	static constexpr double LEG_LENGTH_MULTIPLIER_FOR_BEND = 1.0025;
 	
 protected:
 	
@@ -120,26 +126,29 @@ protected:
 	UPROPERTY()
 	FSootSpriteLimbAttachment AttachTarget;
 	
+	TStaticArray<FTransform, JOINT_COUNT> JointPoses;
+	TArray<float, TInlineAllocator<JOINT_PARAMETER_COUNT>> PackedSkinningMatrices;
+	
 	FVector TargetInterpBegin;
 	FVector TargetInterpEnd;
 	
 	int32 MeshInstance = -1;
 	
-	TStaticArray<FTransform, JOINT_COUNT> JointPoses;
-	TArray<float, TInlineAllocator<JOINT_PARAMETER_COUNT>> PackedSkinningMatrices;
-	
 	double Length = 1;
 	double TargetLength = 1;
 	
-	FVector2D Hack_LastAnchorOffset = FVector2D::ZeroVector;
 	FVector BendDir = FVector::ForwardVector;
 	FVector CowboyDir = FVector::ForwardVector;
 	
 	ESootSpriteLimbGrowState GrowState = ESootSpriteLimbGrowState::None;
 	
-	uint8 bEndNodeAnchored : 1 = false;
+	uint8 bAllowBend : 1 = true;
 };
 
+// instancing path for USootSpriteLimb. holds all soot sprite limb transforms
+// and other render data + controls their render bounds.
+// basically, all soot sprite limbs use the same mesh. this object says
+// 'draw this mesh n times in these places and also ship their joint matrix datas gpu-side'
 UCLASS()
 class CREATUREPROGRAMMER_API USootSpriteLimbISM : public UInstancedStaticMeshComponent
 {

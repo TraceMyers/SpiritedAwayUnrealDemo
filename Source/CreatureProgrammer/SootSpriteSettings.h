@@ -3,6 +3,10 @@
 #include "CoreMinimal.h"
 #include "SootSpriteSettings.generated.h"
 
+// settings for soot sprite creatures (SootSprite.h), stored on the game config 
+// (GameConfig.h) data asset. used broadly as the starting place for all 
+// individual parameters. On BeginPlay, each soot sprite takes a copy of
+// this struct and randomizes it a bit to create individual variation.
 USTRUCT()
 struct FSootSpriteSettings
 {
@@ -27,26 +31,8 @@ struct FSootSpriteSettings
 	
 	// walk
 	
-	// UPROPERTY(EditDefaultsOnly, meta=(ClampMin=0))
-	// double WalkAcceleration = 300.0;
-	//
-	// UPROPERTY(EditDefaultsOnly, meta=(ClampMin=0))
-	// double WalkMaxSpeed = 400.0;
-	//
-	// UPROPERTY(EditDefaultsOnly, meta=(ClampMin=0))
-	// double CrouchWalkMaxSpeed = 900.0;
-	
-	// UPROPERTY(EditDefaultsOnly, meta=(ClampMin=0))
-	// double WalkGait = 220.0;
-	
 	UPROPERTY(EditDefaultsOnly, meta=(ClampMin=0, ClampMax=1))
 	double Cowboy = 0.2;
-	
-	// UPROPERTY(EditDefaultsOnly)
-	// double ScootAcceleration = 900.0;
-	//
-	// UPROPERTY(EditDefaultsOnly)
-	// double ScootMaxSpeed = 700.0;
 	
 	UPROPERTY(EditDefaultsOnly, meta=(ClampMin=0, ClampMax=1))
 	double WalkCycleRate = 1.25;
@@ -91,6 +77,9 @@ struct FSootSpriteSettings
 	
 	UPROPERTY(EditDefaultsOnly)
 	double ExcitementFloor = 0.2;
+	
+	UPROPERTY(EditDefaultsOnly)
+	double ExcitingFallSpeedMin = 500.0;
 	
 	// misc
 	

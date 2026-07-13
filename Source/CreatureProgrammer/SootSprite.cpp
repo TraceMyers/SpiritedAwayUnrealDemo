@@ -106,8 +106,13 @@ void ASootSprite::BeginPlay()
 	BodySprite->CreateAndSetMaterialInstanceDynamic(0);
 	EyesMesh->CreateAndSetMaterialInstanceDynamic(0);
 	
-	FAttachmentTransformRules AttachRules(EAttachmentRule::KeepRelative, EAttachmentRule::KeepRelative, EAttachmentRule::KeepWorld, false);
-	
+	FAttachmentTransformRules AttachRules(
+		EAttachmentRule::KeepRelative, 
+		EAttachmentRule::KeepRelative, 
+		EAttachmentRule::KeepWorld, 
+		false
+	);
+
 	BodySprite->AttachToComponent(BodyMesh, AttachRules);
 	BodySprite->SetRelativeLocation(FVector(0));
 	EyesMesh->AttachToComponent(BodyMesh, AttachRules);
@@ -115,9 +120,6 @@ void ASootSprite::BeginPlay()
 	
 	GetBodySpriteMaterial()->SetScalarParameterValue(L"Index", FMath::RandRange(0, 3));
 	GetEyesMaterial()->SetScalarParameterValue(L"Index", FMath::RandRange(0, 7));
-	
-	AGooberGameState* GameState = GAME_STATE();
-	GameState->SootSprites.Add(this);
 	
 	Settings = GAME_CONFIG()->SootSprite;
 	Settings.Mass = FMath::FRandRange(Settings.Mass * 0.5, Settings.Mass * 2.0);
@@ -129,10 +131,10 @@ void ASootSprite::BeginPlay()
 	const double SqrtMassRatio = FMath::Sqrt(Settings.Mass / GAME_CONFIG()->SootSprite.Mass);
 	
 	Settings.WalkCycleRate = FMath::FRandRange(Settings.WalkCycleRate * 0.9, Settings.WalkCycleRate * 1.1) / SqrtMassRatio;
-	// Settings.WalkAcceleration = FMath::FRandRange(Settings.WalkAcceleration * 0.9, Settings.WalkAcceleration * 1.1) / SqrtMassRatio;
 	
+	// radius is proportional to cubert(mass)
 	constexpr double DENSITY = 0.1;
-	Settings.SizeScale += CubeRootMassDifference * MassDiffSign * DENSITY; // radius is proportional to cubert(mass)
+	Settings.SizeScale += CubeRootMassDifference * MassDiffSign * DENSITY; 
 	
 	SetBodyScale(FVector2D(Settings.SizeScale));
 	
@@ -153,12 +155,17 @@ void ASootSprite::BeginPlay()
 	
 	for (USootSpriteLimb* Toe : Toes)
 	{
+		// toe begin and end are set in worldspace every frame (until feet are integrated into leg mesh)
 		Toe->AttachOrigin.Type = ELimbAttachTargetType::World;
 		Toe->AttachTarget.Type = ELimbAttachTargetType::World;
 		Toe->TargetLength = GetToeLength();
+		Toe->bAllowBend = false; // save cpu cycles. toes are straight
 	}
 	
 	VisionBox->OnComponentBeginOverlap.AddDynamic(this, &ASootSprite::OnVisionBoxOverlap);
+	
+	// game state calls TickUpdate per frame
+	GAME_STATE()->SootSprites.Add(this);
 }
 
 void ASootSprite::EndPlay(const EEndPlayReason::Type EndPlayReason)
@@ -223,7 +230,8 @@ double ASootSprite::GetDistanceFromGround() const
 
 double ASootSprite::GetVisualRadius() const
 {
-	return BodyMesh->Bounds.SphereRadius * 1.2;
+	constexpr double VISUALLY_CHECKED_RADIUS_EXPANSION_FACTOR = 1.2;
+	return BodyMesh->Bounds.SphereRadius * VISUALLY_CHECKED_RADIUS_EXPANSION_FACTOR;
 }
 
 float ASootSprite::IdealHeightFromGround(bool bFactorCarryingMass) const
@@ -231,9 +239,10 @@ float ASootSprite::IdealHeightFromGround(bool bFactorCarryingMass) const
 	double IdealHeight = IDEAL_DISTANCE_FROM_GROUND * Settings.SizeScale;
 	if (bFactorCarryingMass)
 	{
-		const double CarryMass = GetCarryingMass();
-		const double MassRatio = FMath::Clamp(Settings.Mass * 10 / FMath::Sqrt(CarryMass), 0.1, 1);
-		IdealHeight *= MassRatio;
+		// height goes down when carrying mass (was used, now unused, will be used again)
+		// const double CarryMass = GetCarryingMass();
+		// const double MassRatio = FMath::Clamp(Settings.Mass * 10 / FMath::Sqrt(CarryMass), 0.1, 1);
+		// IdealHeight *= MassRatio;
 	}
 	return IdealHeight;
 }
@@ -246,7 +255,8 @@ double ASootSprite::GetCarryingMass() const
 void ASootSprite::OnVisionBoxOverlap(UPrimitiveComponent* ThisComponent, AActor* OverlappedActor,
 	UPrimitiveComponent* OverlappedComponent, int32 OtherBody, bool bFromSweep, const FHitResult& SweepResult)
 {
-	// simplicity: immediate roll for looktarget change
+	// simple for video: immediate roll for looktarget change.
+	// todo: probably expand the visual box and use this proc to generate stored memories of things.
 	if (FMath::FRand() < Excitement * 0.5)
 	{
 		LookTarget = OverlappedActor;
@@ -261,6 +271,7 @@ bool ASootSprite::SpringyLanding(double GroundDist, float DeltaTime)
 	
 	bool bGrounded = false;
 	
+	// if the soot sprite is squishing against the ground, spring up
 	if (SpringDisplacement < 0)
 	{
 		bGrounded = true;
@@ -275,12 +286,15 @@ bool ASootSprite::SpringyLanding(double GroundDist, float DeltaTime)
 		
 		const double SpringLinearAccel = SpringAccel * (1 - AngularAlpha);
 		
-		constexpr double BRAKING_ACCEL = 2000.0;
-		constexpr double UPWARD_ACCEL  = 1000.0;
-	
+		constexpr double UPWARD_ACCEL = 1000.0;
 		const double RestitutionAccel = UPWARD_ACCEL * (-SpringDisplacement / GetVisualRadius());
 		BodyMesh->AddForce(FVector(0,0, SpringLinearAccel + RestitutionAccel), NAME_None, true);
 	
+		// apply extra damping so it doesn't spring up/down too much. soot 
+		// sprites don't look like they're made of rubber.
+		
+		constexpr double BRAKING_ACCEL = 2000.0;
+		
 		const FVector LinearVelocity = BodyMesh->GetPhysicsLinearVelocity();
 		if (LinearVelocity.Z < 0)
 		{
@@ -299,15 +313,23 @@ bool ASootSprite::SpringyLanding(double GroundDist, float DeltaTime)
 
 void ASootSprite::LookAround(double GroundDist, float DeltaTime)
 {
+	// todo: excitement *can* be an immediate mode setting, but it shouldn't reset here
+	// maybe it shouldn't be immediate, though. smoothed for this sort of thing is
+	// usually better. maybe mix both. watch out for oscillation
+	Excitement = Settings.ExcitementFloor;
+	
 	const double FallSpeed = FMath::Max(-BodyMesh->GetPhysicsLinearVelocity().Z, 0);
-	Excitement = Settings.ExcitementFloor; // todo: more stuff
-	if (GroundDist > 500 || FallSpeed > 500)
+	
+	if (FallSpeed > Settings.ExcitingFallSpeedMin)
 	{
-		LookAt(GetActorLocation() + FVector::DownVector * 500, DeltaTime);
-		Excitement = FMath::Clamp( FallSpeed / 1000, Settings.ExcitementFloor, 1.0);
+		// look down when falling fast
+		const FVector LookDownOffset (0,0,-500); 
+		LookAt(GetActorLocation() + LookDownOffset, DeltaTime);
+		Excitement = FMath::Clamp( FallSpeed / (Settings.ExcitingFallSpeedMin * 2), Settings.ExcitementFloor, 1.0);
 	}
 	else
 	{
+		// try to look at the assigned look target actor
 		if (!IsValid(LookTarget))
 		{
 			LookTarget = nullptr;
@@ -328,7 +350,9 @@ void ASootSprite::LookAround(double GroundDist, float DeltaTime)
 		
 		if (!LookTarget)
 		{
-			LookAt(GetActorLocation() + GetActorForwardVector() * 100 + FVector::DownVector * 80, DeltaTime);
+			// nothing to look at, look forward + down. makes walking look more thoughtful.
+			const FVector DefaultLookDirOffset = GetActorForwardVector() + FVector(0,0,-80); 
+			LookAt(GetActorLocation() + DefaultLookDirOffset, DeltaTime);
 		}
 	}
 }
@@ -507,8 +531,11 @@ bool ASootSprite::Stand(double GroundDist, float DeltaTime)
 	const bool bWasStanding = bStanding;
 	bStanding = false;
 	
+	// if we've been on the ground for long enough, stand up!
 	if (GroundedTime > 0.5)
 	{
+		// apply standing force based on how close to the ground we are
+		// compared to how tall our legs are.
 		const double AverageFootZ = (GetLimb(LeftLeg)->GetTarget() + GetLimb(RightLeg)->GetTarget()).Z * 0.5;
 		const double StandSpringHeight = AverageFootZ + IdealHeightFromGround();
 		const double SpringDisplacement = FMath::Min(GetActorLocation().Z - StandSpringHeight, 0);
@@ -522,10 +549,11 @@ bool ASootSprite::Stand(double GroundDist, float DeltaTime)
 		// disabling auto-sit for better video result
 		// StandingAirTime = SpringDisplacement < 200 ? 0 : StandingAirTime + DeltaTime;
 		
-		if (StandingAirTime < 0.5)
+		// if (StandingAirTime < 0.5)
 		{
 			if (!bWasStanding)
 			{
+				// initialize stand
 				BOTH_LEGS_DO(SetTargetDirection(FVector::DownVector))
 				BOTH_LEGS_DO(TargetInterpBegin = CurrentLimb->GetTarget())
 				BOTH_LEGS_DO(TargetInterpEnd = CurrentLimb->GetTarget())
@@ -536,6 +564,7 @@ bool ASootSprite::Stand(double GroundDist, float DeltaTime)
 			}
 			
 			// todo: state
+			// hacky, for video. set target leg length per-frame while standing up, before starting walking.
 			if (GroundedTime < 1)
 			{
 				BOTH_LEGS_DO(TargetLength = (StandSpringHeight - GetVisualRadius() * 0.5 + SpringDisplacement))
@@ -560,30 +589,60 @@ bool ASootSprite::Stand(double GroundDist, float DeltaTime)
 	return bGrounded;
 }
 
+void ASootSprite::UpdateLegLengthsWhileWalking()
+{
+	USootSpriteLimb* PrimaryLeg = Limbs[(ESootSpriteLimbType)MovingLeg];
+	USootSpriteLimb* OtherLeg = Limbs[(ESootSpriteLimbType)!MovingLeg];
+		
+	const double CurZOffset = GetDistanceFromGround(); // todo: replace
+	const double NextZOffset = FMath::Abs(GetActorLocation().Z - PrimaryLeg->TargetInterpEnd.Z);
+	double ZDiff = FMath::Abs(CurZOffset - NextZOffset);
+		
+	PrimaryLeg->TargetLength = (PrimaryLeg->GetTarget() - PrimaryLeg->GetOrigin()).Size() * 1.1 + ZDiff;
+	OtherLeg->TargetLength = (OtherLeg->GetTarget() - OtherLeg->GetOrigin()).Size() * 1.1;}
+
+void ASootSprite::UpdateCenterOfMassWhileWalking()
+{
+	if (MovingLeg == LeftLeg)
+	{
+		LegCOMWeight = WalkPhase;
+	}
+	else
+	{
+		LegCOMWeight = 1 - WalkPhase;
+	}
+	constexpr double MIDDLE_WEIGHT = 0.25;
+	LegCOMWeight = (LegCOMWeight * (1-MIDDLE_WEIGHT)) + (0.5 * MIDDLE_WEIGHT);
+}
+
 void ASootSprite::Walk(float DeltaTime)
 {
 	if (bStanding && GroundedTime > 1)
 	{
 		WalkPhase += (Settings.WalkCycleRate * (1 + Excitement)) * DeltaTime;
 		
-		bool bInitializedLimb[4] = {false};
 		USootSpriteLimb* PrimaryLeg = Limbs[MovingLeg];
 		
+		// WalkPhase must stay in [0, 1]. this loops through any excess
+		// phases accrued in the phase step above. 
+		bool bInitializedNextStep = false;
 		while (WalkPhase >= 1)
 		{
 			WalkPhase -= 1;
 			
-			const FVector Forward2D3 = GetActorForwardVector().GetSafeNormal2D();
-			const FVector2D Forward2D (Forward2D3.X, Forward2D3.Y);
-			
-			MovingLeg = (ESootSpriteLimbType)!MovingLeg;
-			PrimaryLeg = Limbs[MovingLeg];
-			
-			if (!bInitializedLimb[MovingLeg])
+			// initialize the next step
+			if (!bInitializedNextStep)
 			{
-				const FSootSpriteLimbResult Result = PrimaryLeg->InitializeLegTargetInterpolation(Forward2D * 250, 500, 200, GAME_CONFIG()->Debug.bDrawSootSpriteFootHeightRaycast);
-				bInitializedLimb[MovingLeg] = true;
+				bInitializedNextStep = true;
 				
+				const FVector Forward2D3 = GetActorForwardVector().GetSafeNormal2D();
+				const FVector2D Forward2D (Forward2D3.X, Forward2D3.Y);
+			
+				MovingLeg = (ESootSpriteLimbType)!MovingLeg;
+				PrimaryLeg = Limbs[MovingLeg];
+			
+				const FSootSpriteLimbResult Result = PrimaryLeg->InitializeLegTargetInterpolation(Forward2D * 250, 500, 200, GAME_CONFIG()->Debug.bDrawSootSpriteFootHeightRaycast);
+			
 				// wall / ledge. for video, I know it's the ledge. 
 				// give up walking and fall off the ledge
 				if (Result.InitializeLegTargetInterpolation.Progress == 0)
@@ -598,27 +657,8 @@ void ASootSprite::Walk(float DeltaTime)
 		
 		if (bStanding)
 		{
-			USootSpriteLimb* OtherLeg = Limbs[(ESootSpriteLimbType)!MovingLeg];
-		
-			const double CurZOffset = GetDistanceFromGround(); // todo: replace
-			const double NextZOffset = FMath::Abs(GetActorLocation().Z - PrimaryLeg->TargetInterpEnd.Z);
-			double ZDiff = FMath::Abs(CurZOffset - NextZOffset);
-		
-			PrimaryLeg->TargetLength = (PrimaryLeg->GetTarget() - PrimaryLeg->GetOrigin()).Size() * 1.1 + ZDiff;
-			OtherLeg->TargetLength = (OtherLeg->GetTarget() - OtherLeg->GetOrigin()).Size() * 1.1;
-		
-			if (MovingLeg == LeftLeg)
-			{
-				LegCOMWeight = WalkPhase;
-			}
-			else
-			{
-				LegCOMWeight = 1 - WalkPhase;
-			}
-		
-			constexpr double MIDDLE_WEIGHT = 0.25;
-			LegCOMWeight = (LegCOMWeight * (1-MIDDLE_WEIGHT)) + (0.5 * MIDDLE_WEIGHT);
-		
+			UpdateLegLengthsWhileWalking();
+			UpdateCenterOfMassWhileWalking();
 			PrimaryLeg->InterpolateTarget(WalkPhase);
 		}
 	}
@@ -696,10 +736,12 @@ void ASootSprite::UpdateLimbs(float DeltaTime)
 	const FVector Forward = GetActorForwardVector();
 	const FVector Right =  GetActorRightVector();
 	
-	// little hacky. 
-	// toe length < soot sprite radius. this just needs to be longer than the toe length.
-	const double ForeDist = GetVisualRadius();
+	// how far out the *target position* for the tips of the toes will be from the base.
+	// toes aren't allowed to bend at the moment, but >= toe length is still a good
+	// choice to decrease fragility of an already fragile thing.
+	const double ForeDist = GetToeLength();
 	
+	// don't normalize. partials offsets from toe origins to toe end targets
 	const FVector ForeOffset = Forward * ForeDist;
 	const FVector RightOffset = Right * (ForeDist * 0.75);
 	const FVector LeftOffset = -Right * (ForeDist * 0.75);

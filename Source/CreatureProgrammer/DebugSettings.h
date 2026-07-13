@@ -14,9 +14,6 @@ struct FDebugSettings
 	bool bDrawLimbMeshBounds = false;
 	
 	UPROPERTY(EditInstanceOnly)
-	bool bSootSpritesHaveNoXyVelocity = false;
-	
-	UPROPERTY(EditInstanceOnly)
 	double SootSpriteAdditionalCarryingMass = 0;
 	
 	UPROPERTY(EditInstanceOnly)

@@ -274,13 +274,14 @@ void USootSpriteLimb::TickUpdate(float DeltaTime)
 {
 	TRACE_CPUPROFILER_EVENT_SCOPE(USootSpriteLimb_TickUpdate)
 	
-	USootSpriteLimbISM* LimbIsm = LIMB_ISM();
 	if (MeshInstance == -1)
 	{
-		LimbIsm->RequestInstance(this);
+		LIMB_ISM()->RequestInstance(this);
 		ResetJointPoses();
 	}
-	CreatureMath::Step(Length, TargetLength, 1200, DeltaTime);
+	
+	// grow to the target length
+	CreatureMath::LinearStep(Length, TargetLength, 1200 * DeltaTime);
 	
 	// todo: batchupdateInstancetransforms
 	
@@ -307,7 +308,6 @@ void USootSpriteLimb::Clear()
 		LimbIsm->ReturnInstance(this);
 	}
 	AttachTarget = {};
-	bEndNodeAnchored = false;
 }
 
 void USootSpriteLimb::SetGrowState(ESootSpriteLimbGrowState InGrowState)
@@ -329,7 +329,7 @@ void USootSpriteLimb::SetTargetDirection(const FVector& Direction, double Normal
 	check(AttachTarget.Type == ELimbAttachTargetType::World)
 	const FVector TrBegin = GetOrigin();
 	const FVector TrEnd = TrBegin + Direction * Length;
-	CreatureMath::Raycast(GetWorld(), AttachTarget.Offset, TrBegin, TrEnd, ECC_WorldStatic, NormalOffset);
+	CreatureMath::Raycast(GetWorld(), AttachTarget.Offset, TrBegin, TrEnd, GameTraceChannel::Ground, NormalOffset);
 }
 
 FSootSpriteLimbResult USootSpriteLimb::InitializeLegTargetInterpolation(const FVector2D& AnchorOffset, double MaxStepHeight, double EarlyOutStepHeight, bool bDebugDraw)
@@ -343,9 +343,6 @@ FSootSpriteLimbResult USootSpriteLimb::InitializeLegTargetInterpolation(const FV
 	{
 		return {FSootSpriteLimbResult::InvalidInput};
 	}
-	
-	// hack, used for toes
-	Hack_LastAnchorOffset = AnchorOffset;
 	
 	FSootSpriteLimbResult Result = {FSootSpriteLimbResult::None};
 	TargetInterpBegin = AttachTarget.Offset;
@@ -367,6 +364,11 @@ FSootSpriteLimbResult USootSpriteLimb::InitializeLegTargetInterpolation(const FV
 	FColor DebugMissLineColor = FColor::Red;
 	FColor DebugHitLineColor = FColor::Green;
 	
+	// substep forward from the current position, looking out for walls/cliffs, 
+	// and early exiting when a short step is found. this is done so that the 
+	// foot will be placed on the ledge of the step rather than far from the 
+	// ledge, which makes the walking creature look like they're triple-stepping
+	// a stairmaster at the gym.
 	for (int32 Step = 1; Step <= StepCount; Step++)
 	{
 		const double Progress = (double) Step * StepFactor;
@@ -411,18 +413,14 @@ FSootSpriteLimbResult USootSpriteLimb::InitializeLegTargetInterpolation(const FV
 
 void USootSpriteLimb::InterpolateTarget(float Alpha)
 {
-	const FVector Cdfed = FVector(0);
+	const double ZAlpha = CreatureMath::SampleNormalCDF(Alpha);
+	const FVector NormalSmoothed = TargetInterpEnd * ZAlpha + TargetInterpBegin * (1-ZAlpha);
 	const FVector Linear = TargetInterpEnd * Alpha + TargetInterpBegin * (1-Alpha);
-	const FVector Smoothed = FMath::Lerp(Linear, Cdfed, 0.0);
+	const FVector Smoothed = FMath::Lerp(Linear, NormalSmoothed, 0.35);
 	
 	const FVector HeightOffset = FVector::UpVector * ASootSprite::WalkLimbHeightSampler.LinearSample(Alpha);
 	
 	AttachTarget.Offset = Smoothed + HeightOffset;
-}
-
-void USootSpriteLimb::Grow(float DelaTime)
-{
-
 }
 
 FVector USootSpriteLimb::GetBindJointPosition(int32 i)
@@ -436,7 +434,7 @@ FVector USootSpriteLimb::GetOrigin() const
 {
 	if (AttachOrigin.Type == ELimbAttachTargetType::Actor)
 	{
-		return AttachOrigin.Actor->GetActorLocation() + AttachOrigin.Actor->GetActorRotation().RotateVector(AttachOrigin.Offset);
+		return GetSootSprite()->GetActorLocation() + GetSootSprite()->GetActorRotation().RotateVector(AttachOrigin.Offset);
 	}
 	else
 	{
@@ -474,19 +472,9 @@ void USootSpriteLimb::DetermineJointRotations()
 	
 	for (int32 i = 0; i < JOINT_COUNT; i++)
 	{
-		FVector PointInDirection;
-		switch (i)
-		{
-		case 0:
-			PointInDirection = JointPoses[1].GetLocation() - JointPoses[0].GetLocation();
-			break;
-		case JOINT_COUNT-1:
-			PointInDirection = JointPoses[i].GetLocation() - JointPoses[i-1].GetLocation();
-			break;
-		default:
-			PointInDirection = JointPoses[i+1].GetLocation() - JointPoses[i-1].GetLocation();
-			break;
-		}
+		const int32 MinIndex = FMath::Max(i-1, 0);
+		const int32 MaxIndex = FMath::Min(i+1, JOINT_COUNT-1);
+		FVector PointInDirection = JointPoses[MaxIndex].GetLocation() - JointPoses[MinIndex].GetLocation();
 		
 		if (!PointInDirection.Normalize())
 		{
@@ -517,7 +505,7 @@ void USootSpriteLimb::PackSkinningMatrices()
 		
 		const int32 Base = i * PARAMETERS_PER_JOINT;
 		
-		// row 0
+		// row 1
 		PackedSkinningMatrices[Base + 0] = BasisX.X;
 		PackedSkinningMatrices[Base + 1] = BasisY.X;
 		PackedSkinningMatrices[Base + 2] = BasisZ.X;
@@ -549,70 +537,65 @@ void USootSpriteLimb::Bend()
 	
 	const FVector Origin = GetOrigin();
 	const FVector Target = GetTarget();
-	const FVector EndDiff = Target - Origin;
-	const double Dist = EndDiff.Size();
-	const FVector EndDir = EndDiff / Dist;
-	
-	// tbh this whole block is a little hairy
+	const FVector TargetDiff = Target - Origin;
+	const double Dist = TargetDiff.Size();
+	const FVector TargetDir = TargetDiff / Dist;
 	
 	float CurveScale;
-	if (Dist < Length && CreatureMath::SolveCatenary(Dist * 0.5, Length, CurveScale))
+	if (bAllowBend
+		&& Dist < Length 
+		&& CreatureMath::SolveCatenary(Dist * 0.5, Length, CurveScale))
 	{
-		// constexpr double BLEND_SPEED = 800.0;
 		constexpr double BLEND_SPEED = 8.0;
-		const ASootSprite* Owner = Cast<ASootSprite>(AttachOrigin.Actor);
 		
-		// const double BiasedNormCloseToGround = FMath::GetMappedRangeValueClamped(
-		// 	FVector2D(0, 0.5),
-		// 	FVector2D(1, 0.0),
-		// 	FMath::Abs(EndDiff.Z) / Owner->IdealHeightFromGround()
-		// );
-		
-		// const FVector BaseTargetBendDir = AttachOrigin.Actor->GetActorForwardVector() + FVector::DownVector * ((1-BiasedNormCloseToGround*2.0) * 0.25);
-		
-		const FVector ActorForward = AttachOrigin.Actor->GetActorForwardVector();
-		FVector BaseTargetBendDir = (EndDiff + FVector::UpVector * 200.0f + ActorForward * 100).GetSafeNormal();
+		// default bend is the limb's endpoint direction + forward and a little up
+		const FVector ActorForward = GetSootSprite()->GetActorForwardVector();
+		FVector BaseTargetBendDir = (TargetDiff + FVector::UpVector * 200.0f + ActorForward * 100).GetSafeNormal();
 		
 		// try to bend around obstacles
+		
 		int32 FindBendDirStepCount = 0;
 		FVector RotationAxis, Unused;
 		CreatureMath::MakeBasis(BaseTargetBendDir, RotationAxis, Unused);
-		if ((EndDir | ActorForward) < 0)
+		if ((TargetDir | ActorForward) < 0)
 		{
 			RotationAxis *= -1;
 		}
 		const FVector EnvironmentAwareBendDir = FindBendDirection(FindBendDirStepCount, Origin,  BaseTargetBendDir, RotationAxis, 30);
 	
-		// if the way is clear, just point forward
+		// if the way isn't clear, bend away from hazards. else, just use default bend
 		if (FindBendDirStepCount > 0)
 		{
 			BaseTargetBendDir = EnvironmentAwareBendDir;
 		}
 		
 		// cowboy (wide knees). little hacky. would be better to have a controllable knee/bend direction.
-		const FVector Cowboy = CowboyDir * (Owner->Settings.Cowboy /*+ BiasedNormCloseToGround*/);
+		const FVector Cowboy = CowboyDir * (GetSootSprite()->Settings.Cowboy /*+ BiasedNormCloseToGround*/);
 		
 		const FVector TargetBendDir = (BaseTargetBendDir + Cowboy).GetSafeNormal();
-		CreatureMath::Step(BendDir, TargetBendDir, BLEND_SPEED, GetWorld()->DeltaTimeSeconds);
-		BendDir.Normalize();
+		CreatureMath::LinearStep(BendDir, TargetBendDir, BLEND_SPEED * GetWorld()->DeltaTimeSeconds, true);
 		
 		const FVector MidPoint = (Origin + Target) * 0.5;
+		
+		// place joints along the curve
 		
 		const float H = CreatureMath::SampleCatenary(CurveScale, 0.5f * Length).Y;
 		for (int32 i = 1; i < 4; i++)
 		{
 			const float S = Length * ((float)i / 4 - 0.5f);
 			const FVector2f P = CreatureMath::SampleCatenary(CurveScale, S);
-			SetJointPosition(i, MidPoint + EndDir * P.X + BendDir * (H - P.Y));
+			SetJointPosition(i, MidPoint + TargetDir * P.X + BendDir * (H - P.Y));
 		}
 		SetJointPosition(4, Target);
 	}
 	else
 	{
-		SetJointPosition(1, Origin + EndDir * (Length / 4));
-		SetJointPosition(2, Origin + EndDir * (2 * Length / 4));
-		SetJointPosition(3, Origin + EndDir * (3 * Length / 4));
-		SetJointPosition(4, Origin + EndDir * Length);
+		// point limb straight in the target direction
+		// todo: should interpolate into straightness, as is done above with the curve
+		SetJointPosition(1, Origin + TargetDir * (Length / 4));
+		SetJointPosition(2, Origin + TargetDir * (2 * Length / 4));
+		SetJointPosition(3, Origin + TargetDir * (3 * Length / 4));
+		SetJointPosition(4, Origin + TargetDir * Length);
 	}
 }
 

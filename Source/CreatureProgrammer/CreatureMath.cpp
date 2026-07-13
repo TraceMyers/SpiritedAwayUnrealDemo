@@ -193,9 +193,9 @@ double CreatureMath::CalculateSpringAcceleration(double Stiffness, double Dampin
 
 void CreatureMath::AngularDampen(FRotator& AngularVelocity, double Deceleration, float DeltaTime)
 {
-	Step(AngularVelocity.Pitch, 0.0, Deceleration, DeltaTime);
-	Step(AngularVelocity.Yaw, 0.0, Deceleration, DeltaTime);
-	Step(AngularVelocity.Roll, 0.0, Deceleration, DeltaTime);
+	LinearStep(AngularVelocity.Pitch, 0.0, Deceleration * DeltaTime);
+	LinearStep(AngularVelocity.Yaw, 0.0, Deceleration * DeltaTime);
+	LinearStep(AngularVelocity.Roll, 0.0, Deceleration * DeltaTime);
 }
 
 void CreatureMath::AccelerateAndDecelerate(double& SignedSpeed, double SignedDistance, double Acceleration,

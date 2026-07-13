@@ -98,10 +98,9 @@ namespace CreatureMath
 	void AngularDampen(FRotator& AngularVelocity, double Deceleration, float DeltaTime);
 	
 	template<IsTVector T>
-	void Step(T& X, T TargetX, double XSpeed, float DeltaTime)
+	void LinearStep(T& X, T TargetX, double Delta, bool bNormalize=false)
 	{
 		const T XDiff = TargetX - X;
-		const float Delta = XSpeed * DeltaTime;
 		const double Size = XDiff.Size();
 		if (FMath::Abs(Delta) > Size)
 		{
@@ -111,13 +110,17 @@ namespace CreatureMath
 		{
 			X += XDiff * (Delta / Size);
 		}
+		if (bNormalize)
+		{
+			X.Normalize();
+		}
 	}
 	
 	template<IsScalar T>
-	void Step (T& X, T TargetX, float XSpeed, float DeltaTime)
+	void LinearStep (T& X, T TargetX, float AbsDelta)
 	{
 		const T XDiff = TargetX - X;
-		const T Delta = FMath::Sign(XDiff) * XSpeed * DeltaTime;
+		const T Delta = FMath::Sign(XDiff) * AbsDelta;
 		if (FMath::Abs(Delta) > FMath::Abs(XDiff))
 		{
 			X = TargetX;

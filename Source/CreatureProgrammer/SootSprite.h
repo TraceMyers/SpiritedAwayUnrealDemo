@@ -21,6 +21,8 @@ enum class ESootSpriteMoveState : uint8
 	TransitionToScoot
 };
 
+// soot sprite creature class. little sooty fuzzball with three-toed feet
+// and bendy legs from that one scene in Sprited Away.
 UCLASS()
 class CREATUREPROGRAMMER_API ASootSprite : public AActor
 {
@@ -49,19 +51,7 @@ class CREATUREPROGRAMMER_API ASootSprite : public AActor
 	
 public:	
 	
-	// unreal, construction and initialization
-	
 	ASootSprite();
-	
-protected:
-	
-	virtual void BeginPlay() override;
-	
-	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
-	
-public:
-	
-	// public procs
 	
 	void TickUpdate(float DeltaTime);
 	
@@ -80,8 +70,11 @@ public:
 	
 protected:
 	
-	// protected procs
+	virtual void BeginPlay() override;
 	
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
+	
+	// when landing from a fall while legs retracted, treat outer radius as a soft springy material before reaching the inner rigidbody collision 
 	bool SpringyLanding(double GroundDist, float DeltaTime);
 	
 	void LookAround(double GroundDist, float DeltaTime);
@@ -98,7 +91,13 @@ protected:
 	
 	void SetBodySpriteScale(const FVector2D& Scale) const;
 	
+	// track whether we should or shouldn't be standing.
+	// apply forces to push us up off the ground, as legs would.
 	bool Stand(double DistanceFromGround, float DeltaTime);
+	
+	void UpdateLegLengthsWhileWalking();
+	
+	void UpdateCenterOfMassWhileWalking();
 	
 	void Walk(float DeltaTime);
 	
@@ -131,8 +130,6 @@ public:
 	
 	static constexpr double IDEAL_DISTANCE_FROM_GROUND = 180.0;
 	
-	// exposed uproperties
-	
 	UPROPERTY(VisibleDefaultsOnly)
 	UStaticMeshComponent* BodyMesh;
 	
@@ -147,8 +144,6 @@ public:
 	
 	UPROPERTY(EditInstanceOnly)
 	UBoxComponent* VisionBox;
-	
-	// hidden uproperties
 	
 	UPROPERTY()
 	AActor* DesireTarget;
@@ -168,8 +163,6 @@ public:
 	
 	UPROPERTY(EditInstanceOnly)
 	bool bDisableUpdate = false;
-	
-	// public fields
 	
 	static constexpr double RADIUS_VISUAL_ADJUSTMENT_SCALE = 1.2;
 	

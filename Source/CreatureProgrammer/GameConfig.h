@@ -4,6 +4,7 @@
 #include "DebugSettings.h"
 #include "GameConfig.generated.h"
 
+// data asset for all pre-play configuration, and some live config.
 UCLASS()
 class CREATUREPROGRAMMER_API UGameConfig : public UDataAsset
 {
@@ -15,9 +16,6 @@ public:
 	
 	UPROPERTY(EditDefaultsOnly, Category="General")
 	double TimeDilation = 1.0;
-	
-	UPROPERTY(EditDefaultsOnly, Category="General")
-	double Gravity = 980.0;
 	
 	UPROPERTY(EditDefaultsOnly, Category="SootSprite", meta=(ShowOnlyInnerProperties))
 	FSootSpriteSettings SootSprite;	

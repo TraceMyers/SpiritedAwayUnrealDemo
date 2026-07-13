@@ -161,8 +161,8 @@ struct FPoolSlot
 	int32 Index = -1;
 };
 
-// the front end / bookkeeper for a pool. useful in cases where you aren't the owner of the backend data.
-// let the backend store the data however, and just keep track of ownership through books.
+// the front end / bookkeeper for a pool. useful in cases where the backend is an array
+// that you freely control, but needs to be stored elsewhere. this is just the books part.
 struct FPoolFrontend
 {
 	void Request(FPoolSlot& Slot)
