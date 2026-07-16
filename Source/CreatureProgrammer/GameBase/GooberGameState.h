@@ -1,6 +1,6 @@
 #pragma once
 
-#include "GameConfig.h"
+#include "CreatureProgrammer/Config/GameConfig.h"
 #include "GameFramework/GameStateBase.h"
 #include "GooberGameState.generated.h"
 

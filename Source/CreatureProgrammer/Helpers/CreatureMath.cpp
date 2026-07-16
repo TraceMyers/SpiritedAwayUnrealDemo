@@ -1,7 +1,5 @@
 #include "CreatureMath.h"
 
-#include "Math/UnitConversion.h"
-
 namespace
 {
 	// 36 x 10. normal cdf from -3.5 to 0

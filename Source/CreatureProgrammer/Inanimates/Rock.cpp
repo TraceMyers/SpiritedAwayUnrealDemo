@@ -1,6 +1,5 @@
 #include "Rock.h"
-
-#include "MacroHelpers.h"
+#include "CreatureProgrammer/Helpers/MacroHelpers.h"
 
 ARock::ARock()
 {

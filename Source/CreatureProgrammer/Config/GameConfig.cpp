@@ -1,5 +1,5 @@
 #include "GameConfig.h"
-#include "GooberGameState.h"
+#include "CreatureProgrammer/GameBase/GooberGameState.h"
 
 UGameConfig* UGameConfig::Get(const UWorld* World)
 {

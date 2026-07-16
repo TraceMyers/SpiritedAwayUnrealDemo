@@ -14,7 +14,7 @@ class FThreadWorker : public FRunnable
 public:
 	
 	FThreadWorker();
-	~FThreadWorker();
+	virtual ~FThreadWorker() override;
 	
 	virtual bool Init() override;
 	virtual uint32 Run() override;
@@ -25,6 +25,8 @@ public:
 	static void ResetThreadNameIndex() { ThreadNameIndex = 0; }
 	
 protected:
+	
+	// overrides
 	
 	// define in subclass for thread init.
 	virtual void DoInit() {}
@@ -38,11 +40,14 @@ protected:
 	// this functions as a hint for sleep behavior.
 	virtual EThreadWorkAvailiabilty DoWork() = 0;
 	
-protected:
+	// ---------
 	
 	bool ShouldWake() const { return !bRun || WorkAvailiabilty == EThreadWorkAvailiabilty::WorkAvailable; }
 	
+protected:
+	
 	static constexpr float ONE_MILLISECOND = 1.0f / 1000.0f;
+	
 	static int32 ThreadNameIndex;
 	
 	FRunnableThread* Thread = nullptr;

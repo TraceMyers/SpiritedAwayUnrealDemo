@@ -1,12 +1,11 @@
 #include "Sootsprite.h"
-#include "MacroHelpers.h"
-#include "CreatureMath.h"
-#include "DebugDraw.h"
-#include "GooberGameState.h"
-#include "GameConfig.h"
+#include "../../Config/GameConfig.h"
 #include "SootSpriteLimb.h"
 #include "Components/BoxComponent.h"
 #include "Components/MaterialBillboardComponent.h"
+#include "CreatureProgrammer/GameBase/GooberGameState.h"
+#include "CreatureProgrammer/Helpers/DebugDraw.h"
+#include "CreatureProgrammer/Helpers/MacroHelpers.h"
 
 double ASootSprite::BaseSpriteSize;
 FAlphaSampler ASootSprite::WalkLimbHeightSampler;
@@ -46,7 +45,6 @@ ASootSprite::ASootSprite()
 	CREATE_PRIMITIVE_COMPONENT_AS_ROOT(BodyMesh, .bSimulatePhysics=true, .CollisionEnabled=ECollisionEnabled::QueryAndPhysics)
 	CREATE_PRIMITIVE_COMPONENT(EyesMesh, .bCastShadow=true, .bVisible=true)
 	CREATE_PRIMITIVE_COMPONENT(BodySprite, .bVisible=true)
-	CREATE_PRIMITIVE_COMPONENT(VisionBox, .CollisionEnabled=ECollisionEnabled::QueryOnly)
 	Limbs.SetNum(4);
 	CREATE_ACTOR_COMPONENT(Limbs[0])
 	CREATE_ACTOR_COMPONENT(Limbs[1])
@@ -68,8 +66,6 @@ ASootSprite::ASootSprite()
 	BodyMesh->BodyInstance.SetDOFLock(EDOFMode::SixDOF);
 	
 	VisionBox->SetRelativeScale3D(FVector(10));
-	VisionBox->SetCollisionResponseToChannel(GameTraceChannel::SensorBox, ECR_Ignore);
-	VisionBox->SetGenerateOverlapEvents(true);
 	
 	PrimaryActorTick.bCanEverTick = false;
 	PrimaryActorTick.bStartWithTickEnabled = false;

@@ -1,14 +1,12 @@
 #include "SootSpriteLimb.h"
 
-#include "CreatureMath.h"
-#include "DebugDraw.h"
-#include "Goober.h"
-#include "GooberGameState.h"
-#include "Matrix3x4.h"
 #include "SootSprite.h"
 #include "StaticMeshAttributes.h"
 #include "Components/InstancedStaticMeshComponent.h"
-#include "Materials/MaterialExpressionOperator.h"
+#include "CreatureProgrammer/GameBase/Goober.h"
+#include "CreatureProgrammer/GameBase/GooberGameState.h"
+#include "CreatureProgrammer/Helpers/CreatureMath.h"
+#include "CreatureProgrammer/Helpers/DebugDraw.h"
 
 USootSpriteLimbISM::USootSpriteLimbISM()
 {

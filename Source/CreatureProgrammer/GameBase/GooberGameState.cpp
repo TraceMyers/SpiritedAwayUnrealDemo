@@ -1,9 +1,10 @@
 #include "GooberGameState.h"
 #include "Goober.h"
-#include "MacroHelpers.h"
-#include "Sootsprite.h"
+#include "CreatureProgrammer/Creatures/SootSprite/SootSprite.h"
+#include "CreatureProgrammer/Helpers/MacroHelpers.h"
+#include "CreatureProgrammer/Multithreading/ThreadWorker.h"
+#include "CreatureProgrammer/Multithreading/JobSystem/CreatureJobs.h"
 #include "Kismet/GameplayStatics.h"
-#include "ThreadWorker.h"
 
 AGooberGameState* AGooberGameState::Get(const UWorld* World)
 {
@@ -16,7 +17,6 @@ AGooberGameState::AGooberGameState()
 	
 	PrimaryActorTick.bCanEverTick = true;
 	PrimaryActorTick.bStartWithTickEnabled = true;
-	FThreadWorker::ResetThreadNameIndex();
 }
 
 void AGooberGameState::PostInitializeComponents()
@@ -39,6 +39,11 @@ void AGooberGameState::BeginPlay()
 	Super::BeginPlay();
 	
 	Goober = GetWorld()->SpawnActor<AGoober>();
+	
+	FThreadWorker::ResetThreadNameIndex();
+	
+	FCreatureJob J = FCreatureJob(FCreatureVisionUpdate());
+	J.Execute();
 }
 
 void AGooberGameState::MonoTick(float DeltaTime)

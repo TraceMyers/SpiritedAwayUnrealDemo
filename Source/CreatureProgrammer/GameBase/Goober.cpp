@@ -1,6 +1,6 @@
 #include "Goober.h"
-#include "MacroHelpers.h"
-#include "SootSpriteLimb.h"
+#include "CreatureProgrammer/Creatures/SootSprite/SootSpriteLimb.h"
+#include "CreatureProgrammer/Helpers/MacroHelpers.h"
 
 AGoober::AGoober()
 {

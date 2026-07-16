@@ -1,12 +1,13 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "CreatureMath.h"
-#include "MacroHelpers.h"
 #include "SootSpriteAI.h"
 #include "SootSpriteLimb.h"
-#include "SootSpriteSettings.h"
 #include "Components/MaterialBillboardComponent.h"
+#include "CreatureProgrammer/Config/SootSpriteSettings.h"
+#include "CreatureProgrammer/Creatures/Creature.h"
+#include "CreatureProgrammer/Helpers/MacroHelpers.h"
+#include "CreatureProgrammer/Helpers/CreatureMath.h"
 #include "Sootsprite.generated.h"
 
 class UStaticMeshComponent;
@@ -24,7 +25,7 @@ enum class ESootSpriteMoveState : uint8
 // soot sprite creature class. little sooty fuzzball with three-toed feet
 // and bendy legs from that one scene in Sprited Away.
 UCLASS()
-class CREATUREPROGRAMMER_API ASootSprite : public AActor
+class CREATUREPROGRAMMER_API ASootSprite : public ACreature
 {
 	GENERATED_BODY()
 	
@@ -141,9 +142,6 @@ public:
 	
 	UPROPERTY(EditInstanceOnly)
 	AActor* LookTarget;
-	
-	UPROPERTY(EditInstanceOnly)
-	UBoxComponent* VisionBox;
 	
 	UPROPERTY()
 	AActor* DesireTarget;
