@@ -225,7 +225,7 @@ FMatrix& USootSpriteLimbISM::GetInstanceTransformMatrix(USootSpriteLimb* Limb)
 
 void USootSpriteLimbISM::UpdateInstance(USootSpriteLimb* Limb)
 {
-	TRACE_CPUPROFILER_EVENT_SCOPE(USootSpriteLimbISM_UpdateInstances)
+	PROFILE_FUNCTION()
 	
 	// todo: batch update
 	
@@ -272,7 +272,7 @@ void USootSpriteLimbISM::Debug_DrawLimbMeshBounds() const
 
 void USootSpriteLimb::TickUpdate(float DeltaTime)
 {
-	TRACE_CPUPROFILER_EVENT_SCOPE(USootSpriteLimb_TickUpdate)
+	PROFILE_FUNCTION()
 	
 	if (MeshInstance == -1)
 	{
@@ -468,7 +468,7 @@ void USootSpriteLimb::ResetJointPoses()
 
 void USootSpriteLimb::DetermineJointRotations()
 {
-	TRACE_CPUPROFILER_EVENT_SCOPE(USootSpriteLimb_DetermineJointRotations)
+	PROFILE_FUNCTION()
 	
 	for (int32 i = 0; i < JOINT_COUNT; i++)
 	{
@@ -489,7 +489,7 @@ void USootSpriteLimb::DetermineJointRotations()
 
 void USootSpriteLimb::PackSkinningMatrices()
 {
-	TRACE_CPUPROFILER_EVENT_SCOPE(USootSpriteLimb_PackSkinningMatrices)
+	PROFILE_FUNCTION()
 	
 	PackedSkinningMatrices.SetNum(JOINT_PARAMETER_COUNT);
 	
@@ -533,7 +533,7 @@ void USootSpriteLimb::SetJointPosition(int32 Joint, const FVector& WorldPosition
 
 void USootSpriteLimb::Bend()
 {
-	TRACE_CPUPROFILER_EVENT_SCOPE(USootSpriteLimb_Bend)
+	PROFILE_FUNCTION()
 	
 	const FVector Origin = GetOrigin();
 	const FVector Target = GetTarget();

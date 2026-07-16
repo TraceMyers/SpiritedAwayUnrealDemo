@@ -3,9 +3,13 @@
 #include "CoreMinimal.h"
 #include <type_traits>
 
+#define TURN_ON_PROFILERS UE_BUILD_DEBUG | UE_BUILD_DEVELOPMENT
+#define PROFILE_FUNCTION() TRACE_CPUPROFILER_EVENT_SCOPE_STR_CONDITIONAL(__FUNCTION__, TURN_ON_PROFILERS)
+
 namespace GameTraceChannel
 {
 	constexpr ECollisionChannel Ground = ECC_GameTraceChannel1;
+	constexpr ECollisionChannel SensorBox = ECC_GameTraceChannel2;
 }
 
 template<typename T>
@@ -46,6 +50,8 @@ struct FCreateComponentParams
 	bool bVisible         = false;
 	bool bReceivesDecals  = false;
 	bool bSimulatePhysics = false;
+	ECollisionEnabled::Type CollisionEnabled = ECollisionEnabled::NoCollision;
+	EComponentMobility::Type ComponentMobility = EComponentMobility::Movable;
 };
 
 #define CREATE_ROOT_COMPONENT()												\
@@ -66,6 +72,8 @@ struct FCreateComponentParams
 		PropName->SetVisibility(Params.bVisible);															\
 		PropName->bReceivesDecals = Params.bReceivesDecals;													\
 		PropName->SetSimulatePhysics(Params.bSimulatePhysics);												\
+		PropName->SetCollisionEnabled(Params.CollisionEnabled);												\
+		PropName->SetMobility(Params.ComponentMobility);													\
 	} while (0);
 
 // convenience helper for creating components in actor constructors.
@@ -82,7 +90,9 @@ struct FCreateComponentParams
 		PropName->SetVisibility(Params.bVisible);															\
 		PropName->bReceivesDecals = Params.bReceivesDecals;													\
 		PropName->SetSimulatePhysics(Params.bSimulatePhysics);												\
-	} while (0);
+		PropName->SetCollisionEnabled(Params.CollisionEnabled);												\
+		PropName->SetMobility(Params.ComponentMobility);													\
+} while (0);
 
 #define CREATE_SCENE_COMPONENT(PropName, ...) \
 	do {                                                                                                    \

@@ -43,10 +43,10 @@ FAlphaSampler ASootSprite::WalkLimbHeightSampler;
 
 ASootSprite::ASootSprite()
 {
-	CREATE_PRIMITIVE_COMPONENT_AS_ROOT(BodyMesh, .bSimulatePhysics=true)
+	CREATE_PRIMITIVE_COMPONENT_AS_ROOT(BodyMesh, .bSimulatePhysics=true, .CollisionEnabled=ECollisionEnabled::QueryAndPhysics)
 	CREATE_PRIMITIVE_COMPONENT(EyesMesh, .bCastShadow=true, .bVisible=true)
 	CREATE_PRIMITIVE_COMPONENT(BodySprite, .bVisible=true)
-	CREATE_PRIMITIVE_COMPONENT(VisionBox)
+	CREATE_PRIMITIVE_COMPONENT(VisionBox, .CollisionEnabled=ECollisionEnabled::QueryOnly)
 	Limbs.SetNum(4);
 	CREATE_ACTOR_COMPONENT(Limbs[0])
 	CREATE_ACTOR_COMPONENT(Limbs[1])
@@ -60,15 +60,6 @@ ASootSprite::ASootSprite()
 	CREATE_ACTOR_COMPONENT(Toes[4])
 	CREATE_ACTOR_COMPONENT(Toes[5])
 	
-	EyesMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-	BodySprite->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-	VisionBox->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
-	
-	EyesMesh->SetMobility(EComponentMobility::Movable);
-	BodySprite->SetMobility(EComponentMobility::Movable);
-	EyesMesh->SetAbsolute(false, false, false);
-	BodySprite->SetAbsolute(false, false, false);
-	
 	BodyMesh->SetEnableGravity(true);
 	BodyMesh->BodyInstance.bLockRotation = true;
 	BodyMesh->BodyInstance.bLockXRotation = true;
@@ -77,6 +68,8 @@ ASootSprite::ASootSprite()
 	BodyMesh->BodyInstance.SetDOFLock(EDOFMode::SixDOF);
 	
 	VisionBox->SetRelativeScale3D(FVector(10));
+	VisionBox->SetCollisionResponseToChannel(GameTraceChannel::SensorBox, ECR_Ignore);
+	VisionBox->SetGenerateOverlapEvents(true);
 	
 	PrimaryActorTick.bCanEverTick = false;
 	PrimaryActorTick.bStartWithTickEnabled = false;
@@ -179,7 +172,7 @@ void ASootSprite::EndPlay(const EEndPlayReason::Type EndPlayReason)
 
 void ASootSprite::TickUpdate(float DeltaTime)
 {
-	TRACE_CPUPROFILER_EVENT_SCOPE(ASootSprite_TickUpdate)
+	PROFILE_FUNCTION()
 	
 	if (bDisableUpdate)
 	{
@@ -209,7 +202,8 @@ void ASootSprite::TickUpdate(float DeltaTime)
 
 double ASootSprite::GetDistanceFromGround() const
 {
-	TRACE_CPUPROFILER_EVENT_SCOPE(ASootSprite_GetDistanceFromGround)
+	PROFILE_FUNCTION()
+	
 	constexpr double TR_DOWN_DIST = 5000.0;
 	FHitResult GroundHit;
 	const FVector TrBegin = GetActorLocation();
@@ -265,7 +259,7 @@ void ASootSprite::OnVisionBoxOverlap(UPrimitiveComponent* ThisComponent, AActor*
 
 bool ASootSprite::SpringyLanding(double GroundDist, float DeltaTime)
 {
-	TRACE_CPUPROFILER_EVENT_SCOPE(ASootSprite_FallAndCollide)
+	PROFILE_FUNCTION()
 	
 	const double SpringDisplacement = FMath::Min(GroundDist - GetVisualRadius(), 0);
 	
@@ -359,7 +353,8 @@ void ASootSprite::LookAround(double GroundDist, float DeltaTime)
 
 void ASootSprite::LookAt(const FVector& Location, float DeltaTime)
 {
-	TRACE_CPUPROFILER_EVENT_SCOPE(ASootSprite_MovePupilsToward)
+	PROFILE_FUNCTION()
+	
 	const FVector WorldUp = FVector::UpVector;
 	const FVector EyesForward = EyesMesh->GetComponentRotation().Vector();
 	const FVector EyesRight = EyesForward.Cross(WorldUp);
@@ -462,7 +457,8 @@ void ASootSprite::MovePupilsToward(const FVector2D NormPosition, float LinearSpe
 
 bool ASootSprite::SquashAndStretch(double DistanceFromGround, float DeltaTime)
 {
-	TRACE_CPUPROFILER_EVENT_SCOPE(ASootSprite_SquashAndStretch)
+	PROFILE_FUNCTION()
+	
 	const double Radius = GetVisualRadius();
 	const double MaxStretch = Settings.MaxStretch;
 	double HzScaleTarget = 1.0;

@@ -1,9 +1,9 @@
 #include "GooberGameState.h"
-
 #include "Goober.h"
 #include "MacroHelpers.h"
 #include "Sootsprite.h"
 #include "Kismet/GameplayStatics.h"
+#include "ThreadWorker.h"
 
 AGooberGameState* AGooberGameState::Get(const UWorld* World)
 {
@@ -16,6 +16,7 @@ AGooberGameState::AGooberGameState()
 	
 	PrimaryActorTick.bCanEverTick = true;
 	PrimaryActorTick.bStartWithTickEnabled = true;
+	FThreadWorker::ResetThreadNameIndex();
 }
 
 void AGooberGameState::PostInitializeComponents()
