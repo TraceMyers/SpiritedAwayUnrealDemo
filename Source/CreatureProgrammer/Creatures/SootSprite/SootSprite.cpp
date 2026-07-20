@@ -69,6 +69,26 @@ ASootSprite::ASootSprite()
 	PrimaryActorTick.bStartWithTickEnabled = false;
 }
 
+// for unclear reasons, component attach rules set in the 
+// constructor are being ignored, so maybe that's why
+// unreal has this... to fix that.
+void ASootSprite::OnConstruction(const FTransform& Transform)
+{
+	Super::OnConstruction(Transform);
+
+	const FAttachmentTransformRules AttachRules(
+		EAttachmentRule::KeepRelative,
+		EAttachmentRule::KeepRelative,
+		EAttachmentRule::KeepWorld,
+		false
+	);
+
+	BodySprite->AttachToComponent(BodyMesh, AttachRules);
+	BodySprite->SetRelativeLocation(FVector::ZeroVector);
+	EyesMesh->AttachToComponent(BodyMesh, AttachRules);
+	EyesMesh->SetRelativeLocation(FVector::ZeroVector);
+}
+
 void ASootSprite::BeginPlay()
 {
 	Super::BeginPlay();
@@ -92,18 +112,6 @@ void ASootSprite::BeginPlay()
 	
 	BodySprite->CreateAndSetMaterialInstanceDynamic(0);
 	EyesMesh->CreateAndSetMaterialInstanceDynamic(0);
-	
-	FAttachmentTransformRules AttachRules(
-		EAttachmentRule::KeepRelative, 
-		EAttachmentRule::KeepRelative, 
-		EAttachmentRule::KeepWorld, 
-		false
-	);
-
-	BodySprite->AttachToComponent(BodyMesh, AttachRules);
-	BodySprite->SetRelativeLocation(FVector(0));
-	EyesMesh->AttachToComponent(BodyMesh, AttachRules);
-	EyesMesh->SetRelativeLocation(FVector(0));
 	
 	GetBodySpriteMaterial()->SetScalarParameterValue(L"Index", FMath::RandRange(0, 3));
 	GetEyesMaterial()->SetScalarParameterValue(L"Index", FMath::RandRange(0, 7));
