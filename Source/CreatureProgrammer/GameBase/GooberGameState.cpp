@@ -50,11 +50,12 @@ void AGooberGameState::MonoTick(float DeltaTime)
 	CreatureDatabase.BeginTickUpdate();
 	
 	// todo: progressive slicing, put on execute on worker thread
-	FCreatureJob Job = FCreatureJob::Create_Slice(GetWorld(), FCreatureVisionUpdate(), 0, CreatureDatabase.Creatures.Num());
+	FCreatureJob Job = FCreatureJob::CreateSlice(GetWorld(), FCreatureVisionUpdate(), 0, CreatureDatabase.CreaturesNum());
 	Job.Execute();
 	Job.ApplyResults();
 	
-	for (ASootSprite* SootSprite : CreatureDatabase.Transient.SootSprites)
+	const TArray<ASootSprite*>& SootSprites = CreatureDatabase.SubCreatures.GetSootSprites();
+	for (ASootSprite* SootSprite : SootSprites)
 	{
 		SootSprite->TickUpdate(DeltaTime);
 	}
@@ -75,7 +76,8 @@ void AGooberGameState::DebugTick(float DeltaTime)
 	{
 		Goober->SootSpriteLimbIsm->Debug_DrawLimbMeshBounds();
 	}
-	for (ASootSprite* SootSprite : CreatureDatabase.Transient.SootSprites)
+	const TArray<ASootSprite*>& SootSprites = CreatureDatabase.SubCreatures.GetSootSprites();
+	for (ASootSprite* SootSprite : SootSprites)
 	{
 		if (GameConfig->Debug.bDrawSootSpriteBounds)
 		{

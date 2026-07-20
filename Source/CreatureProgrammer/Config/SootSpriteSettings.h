@@ -71,7 +71,7 @@ struct FSootSpriteSettings
 	// limbs
 	
 	UPROPERTY(EditDefaultsOnly)
-	UMaterial* LimbMaterial;
+	UMaterial* LimbMaterial = nullptr;
 	
 	// personality
 	

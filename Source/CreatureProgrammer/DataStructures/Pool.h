@@ -16,7 +16,7 @@ struct FPoolFrontend
 	void Request(FPoolSlot& Slot)
 	{
 		check(Slot.Index == -1)
-		FReadWriteLock Lock(&Counter, ERWMode::Write);
+		FScopeReadWriteLock Lock(&Counter, ERWMode::Write);
 		if (MinAvailable == -1 || MinAvailable >= Availability.GetCapacity())
 		{
 			MinAvailable = Availability.GetCapacity();
@@ -29,7 +29,7 @@ struct FPoolFrontend
 	
 	void Return(FPoolSlot& Slot)
 	{
-		FReadWriteLock Lock(&Counter, ERWMode::Write);
+		FScopeReadWriteLock Lock(&Counter, ERWMode::Write);
 		Availability.ClearBit(Slot.Index, true);
 		MinAvailable = FMath::Min(MinAvailable, Slot.Index);
 		Slot.Index = -1;
@@ -37,7 +37,7 @@ struct FPoolFrontend
 	
 	bool IsSlotAvailable(int32 Index)
 	{
-		FReadWriteLock Lock(&Counter, ERWMode::Read);
+		FScopeReadWriteLock Lock(&Counter, ERWMode::Read);
 		return Availability[Index];
 	}
 

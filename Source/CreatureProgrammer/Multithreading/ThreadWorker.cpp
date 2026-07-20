@@ -36,7 +36,7 @@ uint32 FThreadWorker::Run()
 			const float Time = (WorkAvailiabilty == EThreadWorkAvailiabilty::WorkUnavailable ? SleepTime : 0.0f);
 			// 0 passed in here causes a thread context switch, which makes more sense if work is available soon.
 			// otherwise, sleep for some time >= 1ms.
-			FPlatformProcess::SleepNoStats(Time);
+			FPlatformProcess::Sleep(Time);
 		}
 	}
 	return 0;

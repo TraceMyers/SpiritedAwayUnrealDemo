@@ -2,12 +2,11 @@
 
 #include "CoreMinimal.h"
 #include <type_traits>
-
 #include "../Generated/Generated.h"
+#include "CreatureProgrammer/Multithreading/ThreadingTypes.h"
 
 #define TURN_ON_PROFILERS UE_BUILD_DEBUG | UE_BUILD_DEVELOPMENT
 #define PROFILE_FUNCTION() TRACE_CPUPROFILER_EVENT_SCOPE_STR_CONDITIONAL(__FUNCTION__, TURN_ON_PROFILERS)
-
 
 template<typename T>
 struct FScopedPointer
@@ -141,3 +140,25 @@ ADD_READ_ONLY_FIELD_PART_AFTER_ACCESS_SPECIFIER(Type, Name)
 private:\
 	UPROPERTY(Uproperties) \
 ADD_READ_ONLY_FIELD_PART_AFTER_ACCESS_SPECIFIER(Type, Name)
+
+// simple game thread access protector. can optionally allow reading the array num from outside the game thread.
+#define DECLARE_GAME_THREAD_ONLY_ARRAY(ElementType, ArrayName, bCanReadNumOutsideGameThread) \
+public:	\
+	TArray<ElementType>& Get ## ArrayName() \
+	{ \
+		check(IsInGameThread()) \
+		return ArrayName; \
+	} \
+	const TArray<ElementType>& Get ## ArrayName() const \
+	{ \
+		check(IsInGameThread()) \
+		return ArrayName; \
+	} \
+	int32 ArrayName ## Num() const {  \
+		check(bCanRead ## ArrayName ## NumOutsideGameThread); \
+		return ArrayName.Num();  \
+	} \
+protected: \
+	static constexpr bool bCanRead ## ArrayName ## NumOutsideGameThread = bCanReadNumOutsideGameThread; \
+	UPROPERTY() \
+	TArray<ElementType> ArrayName;

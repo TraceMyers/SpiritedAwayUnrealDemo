@@ -21,7 +21,7 @@ public:
 	FCreatureJob() {}
 	
 	template <typename VariantType>
-	static FCreatureJob Create_FullLoad(const UWorld* World, const VariantType& InVariant)
+	static FCreatureJob CreateFull(const UWorld* World, const VariantType& InVariant)
 	{
 		FCreatureJob Job;
 		Job.Variant.Set<VariantType>(InVariant);
@@ -40,7 +40,7 @@ public:
 	}
 	
 	template <typename VariantType>
-	static FCreatureJob Create_Slice(const UWorld* World, const VariantType& InVariant, int32 First, int32 Num)
+	static FCreatureJob CreateSlice(const UWorld* World, const VariantType& InVariant, int32 First, int32 Num)
 	{
 		// first index being divisible by 4 makes simd jobs easier, since simd data are in groups of 4
 		check(First % 4 == 0) 

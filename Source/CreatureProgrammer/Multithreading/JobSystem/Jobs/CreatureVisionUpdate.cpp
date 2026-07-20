@@ -9,10 +9,13 @@ void FCreatureVisionUpdate::Prepare(const UWorld* World, int32 First, int32 Coun
 	PROFILE_FUNCTION()
 	
 	const FCreatureDatabase& Database = WORLD_GAME_STATE(World)->GetCreatureDatabase();
-	ForwardVectors = Database.Transient.CreatureForwardVectors.Slice(First, Count);
-	VisionOrigins = Database.Transient.CreatureVisionConeLocations.Slice(First, Count);
-	CosVisionAngles = TConstArrayView<double>(Database.Transient.CreatureVisionCosHalfAngles).Slice(First, Count);
-	VisionDistances = TConstArrayView<double>(Database.Transient.CreatureVisionMaxDistances).Slice(First, Count);
+	FConstLoan<FCreatureBulkAIData> AILoaner = Database.AI.TakeConstLoan();
+	const FCreatureBulkAIData& AI = *AILoaner.Data; 
+	
+	ForwardVectors = AI.CreatureForwardVectors.Slice(First, Count);
+	VisionOrigins = AI.CreatureVisionConeLocations.Slice(First, Count);
+	CosVisionAngles = TConstArrayView<double>(AI.CreatureVisionCosHalfAngles).Slice(First, Count);
+	VisionDistances = TConstArrayView<double>(AI.CreatureVisionMaxDistances).Slice(First, Count);
 }
 
 // todo: make monolithic data read only without sucking
@@ -21,14 +24,18 @@ void FCreatureVisionUpdate::Execute(const UWorld* World, int32 First, int32 Coun
 	PROFILE_FUNCTION()
 	
 	const FCreatureDatabase& Database = WORLD_GAME_STATE(World)->GetCreatureDatabase();
-	const int32 CreatureCount = Database.Creatures.Num();
+	
+	const FConstLoan<FCreatureBulkAIData> AILoaner = Database.AI.TakeConstLoan();
+	const FCreatureBulkAIData& AI = *AILoaner.Data; 
+	
+	const int32 CreatureCount = Database.CreaturesNum();
 	
 	check(First % 4 == 0)
 	check(First + Count <= CreatureCount)
 	
 	// all creature datas
-	const FSimdVector3Array& CreatureLocations = Database.Transient.CreatureLocations;
-	const TArray<double>& CreatureRadii = Database.Transient.CreatureVisibleSphereRadii;
+	const FSimdVector3Array& CreatureLocations = AI.CreatureLocations;
+	const TArray<double>& CreatureRadii = AI.CreatureVisibleSphereRadii;
 	
 	const int32 CreatureTargetChunkCount = CreatureLocations.Chunks.Num();
 	
@@ -95,6 +102,7 @@ void FCreatureVisionUpdate::ApplyResults(const UWorld* World, int32 First, int32
 	check(IsInGameThread())
 	
 	const FCreatureDatabase& Database = WORLD_GAME_STATE(World)->GetCreatureDatabase();
+	const TArray<ACreature*>& Creatures = Database.GetCreatures();
 	
 	if (Count == 0)
 	{
@@ -114,8 +122,8 @@ void FCreatureVisionUpdate::ApplyResults(const UWorld* World, int32 First, int32
 		
 		check(BeholderIndex >= First && BeholderIndex <= Last)
 		
-		ACreature* Beholder = Database.Creatures[BeholderIndex];
-		ACreature* Beheld = Database.Creatures[BeheldIndex];
+		ACreature* Beholder = Creatures[BeholderIndex];
+		ACreature* Beheld = Creatures[BeheldIndex];
 		
 		const int32 CurIndex = Beholder->VisibleCreatures.Find(Beheld);
 		if (CurIndex == -1)
@@ -124,7 +132,7 @@ void FCreatureVisionUpdate::ApplyResults(const UWorld* World, int32 First, int32
 		}
 		else
 		{
-			Beholder->VisibleCreatures.RemoveAtSwap(CurIndex, 1, false);
+			Beholder->VisibleCreatures.RemoveAtSwap(CurIndex, 1, EAllowShrinking::No);
 		}
 		
 		NewVisibleCreatures.Emplace(Beheld);

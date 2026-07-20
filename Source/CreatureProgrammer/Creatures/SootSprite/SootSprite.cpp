@@ -156,7 +156,8 @@ void ASootSprite::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
 	if (AGooberGameState* GameState = Cast<AGooberGameState>(GetWorld()->GetGameState()))
 	{
-		GameState->CreatureDatabase.RemoveCreature(this);
+		// todo: bring back
+		// GameState->CreatureDatabase.RemoveCreature(this);
 	}
 	Super::EndPlay(EndPlayReason);
 }
