@@ -14,7 +14,7 @@ I plan to have >= 1000 sutawari simulating all at once.
 - [x] eyes animate and look at things (currently looktargets are disabled)
 - [x] sutawari vision updated with SIMD (20x time reduction compared to box overlaps)
 - [ ] allow sutawari to carry rocks (higher weight = harder to carry)
-- [ ] put job system into motion on worker threads, begin heavy cpu jobs there
+- [ ] put job system into motion on worker threads, put heavy cpu jobs there
 - [ ] multithreaded pathfinding over dynamic terrain (oof)
 - [ ] implement GOAP-based motivation planning (go to rock, pick up rock, drop rock off cliff, pick up star, scamper away, etc.)
 - [ ] implement player character (first person with invisible body but shadowed footsteps; crouch, throw stars, pick up and throw rocks, sutawari avoid feet)
