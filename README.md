@@ -13,6 +13,7 @@ I plan to have >= 1000 sutawari simulating all at once.
 - [x] legs + feet mesh animated procedurally via material and environmental collision
 - [x] eyes animate and look at things (currently looktargets are disabled)
 - [x] sutawari vision updated with SIMD (20x time reduction compared to box overlaps)
+- [ ] currently toes/fingers are individual limbs. limbs should include digits.
 - [ ] allow sutawari to carry rocks (higher weight = harder to carry)
 - [ ] put job system into motion on worker threads, put heavy cpu jobs there
 - [ ] multithreaded pathfinding over dynamic terrain (oof)
