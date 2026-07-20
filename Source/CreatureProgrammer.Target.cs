@@ -10,5 +10,6 @@ public class CreatureProgrammerTarget : TargetRules
 		Type = TargetType.Game;
 		DefaultBuildSettings = BuildSettingsVersion.V6;
 		IncludeOrderVersion = EngineIncludeOrderVersion.Unreal5_7;
+		MinCpuArchX64 = MinimumCpuArchitectureX64.AVX;
 	}
 }

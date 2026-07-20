@@ -1,6 +1,7 @@
 #pragma once
 
 #include "CreatureProgrammer/Config/GameConfig.h"
+#include "CreatureProgrammer/Creatures/CreatureDatabase.h"
 #include "GameFramework/GameStateBase.h"
 #include "GooberGameState.generated.h"
 
@@ -11,6 +12,9 @@ class AGoober;
 #define LIMB_ISM() USootSpriteLimbISM::Get(GetWorld())
 #define GAME_CONFIG() UGameConfig::Get(GetWorld())
 #define GAME_STATE()  AGooberGameState::Get(GetWorld())
+
+#define WORLD_GAME_STATE(World)  AGooberGameState::Get(World)
+#define WORLD_GAME_CONFIG(World) UGameConfig::Get(World)
 
 UCLASS()
 class CREATUREPROGRAMMER_API AGooberGameState : public AGameStateBase
@@ -26,6 +30,12 @@ public:
 	virtual void PostInitializeComponents() override;
 	
 	virtual void Tick(float DeltaSeconds) override;
+	
+	// todo: organize this shitty data
+	const FCreatureDatabase& GetCreatureDatabase() { return CreatureDatabase; }
+	
+	UPROPERTY()
+	FCreatureDatabase CreatureDatabase;
 	
 protected:
 	
@@ -45,7 +55,10 @@ public:
 	UGameConfig* GameConfig;	
 	
 	UPROPERTY()
-	TArray<ASootSprite*> SootSprites;
+	ACreature* DebugCreature;
 	
+protected:
+	
+	int64 TickCount = 0;
 };
 

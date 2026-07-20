@@ -65,8 +65,6 @@ ASootSprite::ASootSprite()
 	BodyMesh->BodyInstance.bLockZRotation = true;
 	BodyMesh->BodyInstance.SetDOFLock(EDOFMode::SixDOF);
 	
-	VisionBox->SetRelativeScale3D(FVector(10));
-	
 	PrimaryActorTick.bCanEverTick = false;
 	PrimaryActorTick.bStartWithTickEnabled = false;
 }
@@ -151,17 +149,14 @@ void ASootSprite::BeginPlay()
 		Toe->bAllowBend = false; // save cpu cycles. toes are straight
 	}
 	
-	VisionBox->OnComponentBeginOverlap.AddDynamic(this, &ASootSprite::OnVisionBoxOverlap);
-	
-	// game state calls TickUpdate per frame
-	GAME_STATE()->SootSprites.Add(this);
+	GAME_STATE()->CreatureDatabase.AddCreature(this);
 }
 
 void ASootSprite::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
 	if (AGooberGameState* GameState = Cast<AGooberGameState>(GetWorld()->GetGameState()))
 	{
-		GameState->SootSprites.Remove(this);
+		GameState->CreatureDatabase.RemoveCreature(this);
 	}
 	Super::EndPlay(EndPlayReason);
 }
@@ -212,7 +207,7 @@ double ASootSprite::GetDistanceFromGround() const
 #if UE_BUILD_DEBUG | UE_BUILD_DEVELOPMENT
 	if (GAME_CONFIG()->Debug.bDrawSootSpriteGroundRaycast)
 	{
-		CreatureDebugDraw::HitResult(GetWorld(), GroundHit, -1);
+		SpiritedDebugDraw::HitResult(GetWorld(), GroundHit, -1);
 	}
 #endif
 	return GroundHit.Distance;
@@ -242,16 +237,16 @@ double ASootSprite::GetCarryingMass() const
 	return CarryingMass + GAME_CONFIG()->Debug.SootSpriteAdditionalCarryingMass;
 }
 
-void ASootSprite::OnVisionBoxOverlap(UPrimitiveComponent* ThisComponent, AActor* OverlappedActor,
-	UPrimitiveComponent* OverlappedComponent, int32 OtherBody, bool bFromSweep, const FHitResult& SweepResult)
-{
-	// simple for video: immediate roll for looktarget change.
-	// todo: probably expand the visual box and use this proc to generate stored memories of things.
-	if (FMath::FRand() < Excitement * 0.5)
-	{
-		LookTarget = OverlappedActor;
-	}
-}
+// void ASootSprite::OnVisionBoxOverlap(UPrimitiveComponent* ThisComponent, AActor* OverlappedActor,
+// 	UPrimitiveComponent* OverlappedComponent, int32 OtherBody, bool bFromSweep, const FHitResult& SweepResult)
+// {
+// 	// simple for video: immediate roll for looktarget change.
+// 	// todo: probably expand the visual box and use this proc to generate stored memories of things.
+// 	if (FMath::FRand() < Excitement * 0.5)
+// 	{
+// 		LookTarget = OverlappedActor;
+// 	}
+// }
 
 bool ASootSprite::SpringyLanding(double GroundDist, float DeltaTime)
 {
@@ -801,8 +796,8 @@ void ASootSprite::Debug_DrawBounds() const
 void ASootSprite::Debug_DrawVisionBox() const
 {
 #if UE_BUILD_DEBUG | UE_BUILD_DEVELOPMENT
-	const FVector BoxCenter = VisionBox->GetComponentLocation();
-	const FVector Extent = VisionBox->GetScaledBoxExtent();
-	DrawDebugBox(GetWorld(), BoxCenter, Extent, FColor::Orange, false, -1, 0, 3);
+	// const FVector BoxCenter = VisionBox->GetComponentLocation();
+	// const FVector Extent = VisionBox->GetScaledBoxExtent();
+	// DrawDebugBox(GetWorld(), BoxCenter, Extent, FColor::Orange, false, -1, 0, 3);
 #endif
 }

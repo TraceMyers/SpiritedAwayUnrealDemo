@@ -1,6 +1,6 @@
 #include "DebugDraw.h"
 
-void CreatureDebugDraw::HitResult(const UWorld* World, const FHitResult& HitResult, float Time, FColor MissLineColor, FColor HitLineColor)
+void SpiritedDebugDraw::HitResult(const UWorld* World, const FHitResult& HitResult, float Time, FColor MissLineColor, FColor HitLineColor)
 {
 	DrawDebugPoint(World, HitResult.TraceStart, 5, FColor::Yellow, false, Time);
 	if (HitResult.bBlockingHit)

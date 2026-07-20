@@ -403,7 +403,7 @@ FSootSpriteLimbResult USootSpriteLimb::InitializeLegTargetInterpolation(const FV
 	
 	if (bDebugDraw)
 	{
-		CreatureDebugDraw::HitResult(GetWorld(), HitResult, DEBUG_DRAW_TIME, DebugMissLineColor, DebugHitLineColor);
+		SpiritedDebugDraw::HitResult(GetWorld(), HitResult, DEBUG_DRAW_TIME, DebugMissLineColor, DebugHitLineColor);
 	}
 	
 	return Result;

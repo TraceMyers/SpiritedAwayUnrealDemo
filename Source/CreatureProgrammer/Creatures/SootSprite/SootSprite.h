@@ -66,9 +66,6 @@ public:
 	
 	double GetCarryingMass() const;
 	
-	UFUNCTION()
-	void OnVisionBoxOverlap(UPrimitiveComponent* ThisComponent, AActor* OverlappedActor, UPrimitiveComponent* OverlappedComponent, int32 OtherBody, bool bFromSweep, const FHitResult& SweepResult);
-	
 protected:
 	
 	virtual void BeginPlay() override;

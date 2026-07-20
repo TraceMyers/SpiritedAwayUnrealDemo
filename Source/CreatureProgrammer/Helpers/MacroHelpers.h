@@ -3,14 +3,11 @@
 #include "CoreMinimal.h"
 #include <type_traits>
 
+#include "../Generated/Generated.h"
+
 #define TURN_ON_PROFILERS UE_BUILD_DEBUG | UE_BUILD_DEVELOPMENT
 #define PROFILE_FUNCTION() TRACE_CPUPROFILER_EVENT_SCOPE_STR_CONDITIONAL(__FUNCTION__, TURN_ON_PROFILERS)
 
-namespace GameTraceChannel
-{
-	constexpr ECollisionChannel Ground = ECC_GameTraceChannel1;
-	constexpr ECollisionChannel SensorBox = ECC_GameTraceChannel2;
-}
 
 template<typename T>
 struct FScopedPointer
@@ -130,3 +127,17 @@ FORCEINLINE double Get ## MinValue() const \
 { \
 	return FMath::Lerp((Settings.MinValue), (Settings.MinValue) * (Settings.MaxMultiplier), Excitement); \
 }
+
+#define ADD_READ_ONLY_FIELD_PART_AFTER_ACCESS_SPECIFIER(Type, Name) \
+	Type Name; \
+public:\
+	const Type& Get ## Name() { return Name; }
+
+#define ADD_READ_ONLY_FIELD(Type, Name) \
+private:\
+ADD_READ_ONLY_FIELD_PART_AFTER_ACCESS_SPECIFIER(Type, Name)
+
+#define ADD_READ_ONLY_UPROPERTY(Type, Name, Uproperties) \
+private:\
+	UPROPERTY(Uproperties) \
+ADD_READ_ONLY_FIELD_PART_AFTER_ACCESS_SPECIFIER(Type, Name)

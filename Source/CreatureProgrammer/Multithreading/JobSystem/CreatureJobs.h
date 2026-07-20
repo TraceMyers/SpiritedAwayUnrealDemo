@@ -2,30 +2,72 @@
 
 #include "Jobs/CreatureVisionUpdate.h"
 
-// add a type to this template list to have it as an available job type a job type only needs a 
-// 'void Execute();' procedure. 
+// add a type to this template list to have it as an available job type. the type only needs a 
+// 'void Execute(const UWorld* World);' procedure. 
 typedef TVariant<
 	FCreatureVisionUpdate
 > FCreatureJobVariant;
+
+enum class ECreatureJobLoad
+{
+	Full,
+	Slice
+};
 
 class FCreatureJob
 {
 public:
 	
+	FCreatureJob() {}
+	
 	template <typename VariantType>
-	FCreatureJob(const VariantType& InVariant)
+	static FCreatureJob Create_FullLoad(const UWorld* World, const VariantType& InVariant)
 	{
-		Variant.Set<VariantType>(InVariant);
-		Procedure = [](FCreatureJobVariant& Variant)
+		FCreatureJob Job;
+		Job.Variant.Set<VariantType>(InVariant);
+		Job.Variant.Get<VariantType>().Prepare(World);
+		Job.ExecuteProc = [World](FCreatureJobVariant& Variant)
 		{
-			Variant.Get<VariantType>().Execute();	
+			Variant.Get<VariantType>().Execute(World);	
 		};
-		ID = IDCounter.Increment();
+		Job.ResultProc = [World](FCreatureJobVariant& Variant)
+		{
+			Variant.Get<VariantType>().ApplyResults(World);	
+		};
+		Job.ID = IDCounter.Increment();
+		Job.Load = ECreatureJobLoad::Full;
+		return Job;
+	}
+	
+	template <typename VariantType>
+	static FCreatureJob Create_Slice(const UWorld* World, const VariantType& InVariant, int32 First, int32 Num)
+	{
+		// first index being divisible by 4 makes simd jobs easier, since simd data are in groups of 4
+		check(First % 4 == 0) 
+		FCreatureJob Job;
+		Job.Variant.Set<VariantType>(InVariant);
+		Job.Variant.Get<VariantType>().Prepare(World, First, Num);
+		Job.ExecuteProc = [World, First, Num](FCreatureJobVariant& Variant)
+		{
+			Variant.Get<VariantType>().Execute(World, First, Num);	
+		};
+		Job.ResultProc = [World, First, Num](FCreatureJobVariant& Variant)
+		{
+			Variant.Get<VariantType>().ApplyResults(World, First, Num);	
+		};
+		Job.ID = IDCounter.Increment();
+		Job.Load = ECreatureJobLoad::Slice;
+		return Job;
 	}
 	
 	void Execute()
 	{
-		Procedure(Variant);
+		ExecuteProc(Variant);
+	}
+	
+	void ApplyResults()
+	{
+		ResultProc(Variant);
 	}
 	
 	int32 GetID() const { return ID; }
@@ -36,7 +78,11 @@ protected:
 	
 	static FThreadSafeCounter IDCounter;
 	
-	int32 ID;
+	int32 ID = -1;
 	FCreatureJobVariant Variant;
-	TFunction<void(FCreatureJobVariant& Variant)> Procedure;
+	
+	TFunction<void(FCreatureJobVariant& Variant)> ExecuteProc;
+	TFunction<void(FCreatureJobVariant& Variant)> ResultProc;
+	
+	ECreatureJobLoad Load = ECreatureJobLoad::Full;
 };
